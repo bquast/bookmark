@@ -30,7 +30,7 @@
     // Default style for regular paragraphs.
     NSMutableParagraphStyle *defaultParagraphStyle = [[NSParagraphStyle defaultParagraphStyle] mutableCopy];
     defaultParagraphStyle.paragraphSpacingBefore = defaultSize * 0.2; // Space before a paragraph
-    defaultParagraphStyle.paragraphSpacing = defaultSize * 0.1;
+    defaultParagraphStyle.paragraphSpacing = defaultSize * 0.0;
     defaultParagraphStyle.lineSpacing = defaultSize * 0.2;           // Extra space between lines within a paragraph
 
     // Style for headings, typically with more space around them.
