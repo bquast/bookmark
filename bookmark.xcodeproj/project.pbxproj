@@ -15,13 +15,14 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		543BCD232DD0D2BA00A5611B /* bookmark.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = bookmark.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		543BCD242DD0D49D00A5611B /* bookmark.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = bookmark.entitlements; sourceTree = "<group>"; };
 		54AD51A32DCFA61000BB86C3 /* MarkdownParser.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MarkdownParser.m; sourceTree = "<group>"; };
 		54AD51A52DCFA6F900BB86C3 /* MarkdownParser.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MarkdownParser.h; sourceTree = "<group>"; };
 		54AE088A2DCF7C4A0017B190 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
 		54AE088B2DCF7C4A0017B190 /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
 		54AE088D2DCF7C4B0017B190 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		54AE08922DCF7C4B0017B190 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
-		54AE089A2DCF7E0C0017B190 /* bookmark.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = bookmark.app; path = /Users/bquast/bookmark/build/Debug/bookmark.app; sourceTree = "<absolute>"; };
 		54AE089B2DCF87FF0017B190 /* BookTextView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BookTextView.h; sourceTree = "<group>"; };
 		54AE089C2DCF880A0017B190 /* BookTextView.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BookTextView.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -40,6 +41,7 @@
 		54AE087E2DCF7C4A0017B190 = {
 			isa = PBXGroup;
 			children = (
+				543BCD242DD0D49D00A5611B /* bookmark.entitlements */,
 				54AE088A2DCF7C4A0017B190 /* AppDelegate.h */,
 				54AE088B2DCF7C4A0017B190 /* AppDelegate.m */,
 				54AE088D2DCF7C4B0017B190 /* Assets.xcassets */,
@@ -48,6 +50,7 @@
 				54AE089C2DCF880A0017B190 /* BookTextView.m */,
 				54AD51A32DCFA61000BB86C3 /* MarkdownParser.m */,
 				54AD51A52DCFA6F900BB86C3 /* MarkdownParser.h */,
+				543BCD232DD0D2BA00A5611B /* bookmark.app */,
 			);
 			sourceTree = "<group>";
 		};
@@ -70,7 +73,7 @@
 			packageProductDependencies = (
 			);
 			productName = empty;
-			productReference = 54AE089A2DCF7E0C0017B190 /* bookmark.app */;
+			productReference = 543BCD232DD0D2BA00A5611B /* bookmark.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -254,13 +257,15 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = "";
+				CODE_SIGN_ENTITLEMENTS = bookmark.entitlements;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 64H4N973WP;
 				ENABLE_HARDENED_RUNTIME = NO;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.books";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -281,13 +286,15 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = "";
+				CODE_SIGN_ENTITLEMENTS = bookmark.entitlements;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 64H4N973WP;
 				ENABLE_HARDENED_RUNTIME = NO;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.books";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
 				LD_RUNPATH_SEARCH_PATHS = (
