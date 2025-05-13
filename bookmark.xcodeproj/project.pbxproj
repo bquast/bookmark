@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		540390072DD341EE00592D51 /* books_index.json in Resources */ = {isa = PBXBuildFile; fileRef = 540390062DD341EE00592D51 /* books_index.json */; };
 		54AD51A42DCFA61000BB86C3 /* MarkdownParser.m in Sources */ = {isa = PBXBuildFile; fileRef = 54AD51A32DCFA61000BB86C3 /* MarkdownParser.m */; };
 		54AE088C2DCF7C4A0017B190 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 54AE088B2DCF7C4A0017B190 /* AppDelegate.m */; };
 		54AE088E2DCF7C4B0017B190 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 54AE088D2DCF7C4B0017B190 /* Assets.xcassets */; };
@@ -15,6 +16,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		540390062DD341EE00592D51 /* books_index.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = books_index.json; sourceTree = "<group>"; };
 		543BCD232DD0D2BA00A5611B /* bookmark.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = bookmark.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		543BCD242DD0D49D00A5611B /* bookmark.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = bookmark.entitlements; sourceTree = "<group>"; };
 		54AD51A32DCFA61000BB86C3 /* MarkdownParser.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MarkdownParser.m; sourceTree = "<group>"; };
@@ -51,6 +53,7 @@
 				54AD51A32DCFA61000BB86C3 /* MarkdownParser.m */,
 				54AD51A52DCFA6F900BB86C3 /* MarkdownParser.h */,
 				543BCD232DD0D2BA00A5611B /* bookmark.app */,
+				540390062DD341EE00592D51 /* books_index.json */,
 			);
 			sourceTree = "<group>";
 		};
@@ -115,6 +118,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				54AE088E2DCF7C4B0017B190 /* Assets.xcassets in Resources */,
+				540390072DD341EE00592D51 /* books_index.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

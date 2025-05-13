@@ -1,8 +1,17 @@
 #import <Cocoa/Cocoa.h>
 
-@interface AppDelegate : NSObject <NSApplicationDelegate>
+NS_ASSUME_NONNULL_BEGIN
 
-@property (strong, nonatomic) NSWindow *window;
+@interface AppDelegate : NSObject <NSApplicationDelegate, NSTableViewDataSource, NSTableViewDelegate>
+
+@property (strong) NSWindow *window;
+
+// Properties for the Book Library
+@property (nonatomic, strong, nullable) NSWindow *libraryWindow;
+@property (nonatomic, strong, nullable) NSTableView *libraryTableView;
+@property (nonatomic, strong, nullable) NSSearchField *librarySearchField;
+@property (nonatomic, strong, nullable) NSArray<NSDictionary *> *allBooks;
+@property (nonatomic, strong, nullable) NSArray<NSDictionary *> *displayedBooks;
 
 // Action method for opening a document
 - (void)openDocument:(id)sender;
@@ -11,3 +20,5 @@
 // - (void)goToBottom:(id)sender;
 
 @end
+
+NS_ASSUME_NONNULL_END
