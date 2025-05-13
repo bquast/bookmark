@@ -606,7 +606,6 @@
     if (!bookView) return;
 
     NSFont *defaultTextViewFont = bookView.font ?: [NSFont systemFontOfSize:16.0]; // This should be Helvetica 16pt
-    NSFont *h1FontForWelcome = [NSFont boldSystemFontOfSize:defaultTextViewFont.pointSize * 2.0];
     NSFont *h2FontForWelcome = [NSFont boldSystemFontOfSize:defaultTextViewFont.pointSize * 1.5];
     NSString *appName = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleDisplayName"] ?: [[NSProcessInfo processInfo] processName];
     
