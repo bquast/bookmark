@@ -3,6 +3,22 @@
 #import "MarkdownParser.h"
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h> // For UTType
 
+#define MAX_RECENT_FILES 10
+#define RECENT_FILES_USER_DEFAULTS_KEY @"RecentlyViewedBookFiles"
+
+// Add this class extension for private method declarations
+@interface AppDelegate ()
+- (void)loadBookIndexFromBundle;
+- (NSURL *)applicationBooksDirectory;
+- (void)updateBookViewWithContent:(NSAttributedString *)attributedString title:(NSString *)title;
+- (void)displayBookFromFileURL:(NSURL *)fileURL title:(NSString *)bookTitle;
+- (BookTextView *)findBookTextView;
+- (void)loadRecentlyViewedFiles;
+- (void)saveRecentlyViewedFiles;
+- (void)addFileToRecents:(NSDictionary *)fileInfo;
+- (void)updateWelcomeScreenWithRecentFiles;
+@end
+
 @implementation AppDelegate
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification {
@@ -97,15 +113,19 @@
 
     // --- Initial Content ---
     // Display a welcome message, styled using the MarkdownParser
-    NSString *welcomeMessage = [NSString stringWithFormat:@"# Welcome to %@!\n\nUse File > Open... to select a Markdown file.\n\nUse UP/DOWN or LEFT/RIGHT arrow keys for page turning.", appName];
-    NSAttributedString *styledWelcome = [MarkdownParser attributedStringFromMarkdownString:welcomeMessage defaultFont:defaultTextViewFont];
+    // NSString *welcomeMessage = [NSString stringWithFormat:@"# Welcome to %@!\n\nUse File > Open... to select a Markdown file.\n\nUse UP/DOWN or LEFT/RIGHT arrow keys for page turning.", appName]; // Commented out
+    // NSAttributedString *styledWelcome = [MarkdownParser attributedStringFromMarkdownString:welcomeMessage defaultFont:defaultTextViewFont]; // Commented out
     // Apply the styled welcome message to the text view's storage
-    [[bookView textStorage] setAttributedString:styledWelcome];
+    // [[bookView textStorage] setAttributedString:styledWelcome]; // Commented out
 
     // --- Finalize Window and Activate App ---
     [self.window makeKeyAndOrderFront:nil]; // Show the window
     [NSApp activateIgnoringOtherApps:YES];  // Bring the app to the foreground
     [self.window makeFirstResponder:bookView]; // Ensure BookTextView receives key events for paging
+
+    // Load and display recent files on the welcome screen
+    [self loadRecentlyViewedFiles];
+    [self updateWelcomeScreenWithRecentFiles];
 }
 
 - (void)loadBookIndexFromBundle {
@@ -190,6 +210,14 @@
     if (fileContent) {
         NSAttributedString *styledContent = [MarkdownParser attributedStringFromMarkdownString:fileContent defaultFont:defaultFont];
         [self updateBookViewWithContent:styledContent title:bookTitle];
+        
+        // Add to recents
+        NSDictionary *bookInfo = @{
+            @"title": bookTitle ?: fileURL.lastPathComponent, // Ensure title is not nil
+            @"filename": fileURL.lastPathComponent
+        };
+        [self addFileToRecents:bookInfo];
+
     } else {
         NSString *errorMessage = [NSString stringWithFormat:@"Error loading file: %@\nPath: %@", error.localizedDescription, fileURL.path];
         NSAttributedString *styledError = [[NSAttributedString alloc] initWithString:errorMessage attributes:@{NSFontAttributeName: defaultFont, NSForegroundColorAttributeName: [NSColor redColor]}];
@@ -481,11 +509,19 @@
                     // Parse the Markdown string into an NSAttributedString
                     NSAttributedString *styledContent = [MarkdownParser attributedStringFromMarkdownString:fileContent defaultFont:defaultTextViewFont];
                     [self updateBookViewWithContent:styledContent title:selectedFileURL.lastPathComponent];
+                
+                    // Add to recents
+                    NSDictionary *bookInfo = @{
+                        @"title": selectedFileURL.lastPathComponent, // Use filename as title for "Open..."
+                        @"filename": selectedFileURL.lastPathComponent
+                    };
+                    [self addFileToRecents:bookInfo];
+
                 } else {
                     // Handle error loading file content
                     NSString *errorMessage = [NSString stringWithFormat:@"Error loading file content: %@\nPath: %@", error.localizedDescription, selectedFileURL.path];
                     NSAttributedString *styledError = [[NSAttributedString alloc] initWithString:errorMessage attributes:@{NSFontAttributeName: defaultTextViewFont, NSForegroundColorAttributeName: [NSColor redColor]}];
-                    [self updateBookViewWithContent:styledError title:@"Error"];
+                    [self updateBookViewWithContent:styledError title:@"Error Opening File"]; // Changed title for clarity
                     
                     // Show an alert panel to the user
                     NSAlert *alert = [[NSAlert alloc] init];
@@ -508,6 +544,78 @@
 // Determine if the application should terminate when the last window is closed
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender {
     return YES; // Standard behavior for document-based apps
+}
+
+- (void)loadRecentlyViewedFiles {
+    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+    NSArray *savedFiles = [defaults arrayForKey:RECENT_FILES_USER_DEFAULTS_KEY];
+    if (savedFiles) {
+        self.recentlyViewedFiles = [NSMutableArray arrayWithArray:savedFiles];
+    } else {
+        self.recentlyViewedFiles = [NSMutableArray array];
+    }
+}
+
+- (void)saveRecentlyViewedFiles {
+    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+    [defaults setObject:[NSArray arrayWithArray:self.recentlyViewedFiles] forKey:RECENT_FILES_USER_DEFAULTS_KEY]; // Save an immutable copy
+    [defaults synchronize]; // Ensure it's written immediately
+}
+
+- (void)addFileToRecents:(NSDictionary *)fileInfo {
+    if (!fileInfo[@"filename"] || !fileInfo[@"title"]) {
+        NSLog(@"Warning: Attempted to add invalid fileInfo to recents: %@", fileInfo);
+        return;
+    }
+
+    // Remove existing entry if it exists to move it to the top
+    NSString *fileNameToAdd = fileInfo[@"filename"];
+    __block NSInteger existingIndex = NSNotFound; 
+    [self.recentlyViewedFiles enumerateObjectsWithOptions:NSEnumerationReverse usingBlock:^(NSDictionary * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+        if ([obj[@"filename"] isEqualToString:fileNameToAdd]) {
+            existingIndex = idx;
+            *stop = YES;
+        }
+    }];
+
+    if (existingIndex != NSNotFound) {
+        [self.recentlyViewedFiles removeObjectAtIndex:existingIndex];
+    }
+
+    // Add to the top
+    [self.recentlyViewedFiles insertObject:fileInfo atIndex:0];
+
+    // Trim if list is too long
+    while (self.recentlyViewedFiles.count > MAX_RECENT_FILES) {
+        [self.recentlyViewedFiles removeLastObject];
+    }
+
+    [self saveRecentlyViewedFiles];
+}
+
+- (void)updateWelcomeScreenWithRecentFiles {
+    BookTextView *bookView = [self findBookTextView];
+    if (!bookView) return;
+
+    NSFont *defaultTextViewFont = bookView.font ?: [NSFont systemFontOfSize:16.0];
+    NSString *appName = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleDisplayName"] ?: [[NSProcessInfo processInfo] processName];
+    
+    NSMutableString *welcomeMarkdown = [NSMutableString stringWithFormat:@"# Welcome to %@!\n\nUse File > Open... to select a Markdown file, or File > Browse Online Library... to download books.\n\nUse UP/DOWN or LEFT/RIGHT arrow keys for page turning.\n\n", appName];
+
+    if (self.recentlyViewedFiles.count > 0) {
+        [welcomeMarkdown appendString:@"## Recently Opened:\n"];
+        for (NSDictionary *fileInfo in self.recentlyViewedFiles) {
+            NSString *title = fileInfo[@"title"] ?: @"Unknown Title";
+            // For now, just list them. Making them clickable requires more advanced attributed string handling.
+            [welcomeMarkdown appendFormat:@"- %@\n", title];
+        }
+    } else {
+        [welcomeMarkdown appendString:@"\nNo recently opened books.\n"];
+    }
+
+    NSAttributedString *styledWelcome = [MarkdownParser attributedStringFromMarkdownString:welcomeMarkdown defaultFont:defaultTextViewFont];
+    [[bookView textStorage] setAttributedString:styledWelcome];
+    [self.window setTitle:appName]; // Reset title to app name for the welcome screen
 }
 
 @end

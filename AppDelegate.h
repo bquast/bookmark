@@ -19,6 +19,8 @@ NS_ASSUME_NONNULL_BEGIN
 // - (void)goToTop:(id)sender;
 // - (void)goToBottom:(id)sender;
 
+@property (nonatomic, strong) NSMutableArray<NSDictionary *> *recentlyViewedFiles; // Array of {"title": "...", "filename": "..."}
+
 @end
 
 NS_ASSUME_NONNULL_END
