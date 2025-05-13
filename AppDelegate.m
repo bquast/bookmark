@@ -111,6 +111,8 @@
     // Add the NSScrollView to the window's content view
     [windowContentView addSubview:scrollView];
 
+    bookView.delegate = self; // Set AppDelegate as the delegate for BookTextView
+
     // --- Initial Content ---
     // Display a welcome message, styled using the MarkdownParser
     // NSString *welcomeMessage = [NSString stringWithFormat:@"# Welcome to %@!\n\nUse File > Open... to select a Markdown file.\n\nUse UP/DOWN or LEFT/RIGHT arrow keys for page turning.", appName]; // Commented out
@@ -598,24 +600,102 @@
     if (!bookView) return;
 
     NSFont *defaultTextViewFont = bookView.font ?: [NSFont systemFontOfSize:16.0];
+    NSFont *h2Font = [NSFont boldSystemFontOfSize:defaultTextViewFont.pointSize * 1.5];
     NSString *appName = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleDisplayName"] ?: [[NSProcessInfo processInfo] processName];
     
-    NSMutableString *welcomeMarkdown = [NSMutableString stringWithFormat:@"# Welcome to %@!\n\nUse File > Open... to select a Markdown file, or File > Browse Online Library... to download books.\n\nUse UP/DOWN or LEFT/RIGHT arrow keys for page turning.\n\n", appName];
+    NSMutableAttributedString *finalWelcomeMessage = [[NSMutableAttributedString alloc] init];
+
+    // Standard Welcome Part
+    NSString *welcomeHeader = [NSString stringWithFormat:@"# Welcome to %@!\n\n", appName];
+    NSString *welcomeInstructions = @"Use File > Open... to select a Markdown file, or File > Browse Online Library... to download books.\n\nUse UP/DOWN or LEFT/RIGHT arrow keys for page turning.\n\n";
+    
+    NSAttributedString *styledWelcomeHeader = [MarkdownParser attributedStringFromMarkdownString:welcomeHeader defaultFont:defaultTextViewFont];
+    NSAttributedString *styledWelcomeInstructions = [MarkdownParser attributedStringFromMarkdownString:welcomeInstructions defaultFont:defaultTextViewFont];
+
+    [finalWelcomeMessage appendAttributedString:styledWelcomeHeader];
+    [finalWelcomeMessage appendAttributedString:styledWelcomeInstructions];
 
     if (self.recentlyViewedFiles.count > 0) {
-        [welcomeMarkdown appendString:@"## Recently Opened:\n"];
+        NSAttributedString *recentHeader = [[NSAttributedString alloc] initWithString:@"Recently Opened:\n" attributes:@{NSFontAttributeName: h2Font, NSForegroundColorAttributeName: [NSColor textColor]}];
+        [finalWelcomeMessage appendAttributedString:recentHeader];
+        
+        NSMutableParagraphStyle *listParagraphStyle = [[NSParagraphStyle defaultParagraphStyle] mutableCopy];
+        listParagraphStyle.headIndent = 20.0; // Indent for list items
+        listParagraphStyle.firstLineHeadIndent = 0.0; // For the bullet itself
+        listParagraphStyle.paragraphSpacingBefore = 2.0;
+        listParagraphStyle.paragraphSpacing = 2.0;
+
+
         for (NSDictionary *fileInfo in self.recentlyViewedFiles) {
             NSString *title = fileInfo[@"title"] ?: @"Unknown Title";
-            // For now, just list them. Making them clickable requires more advanced attributed string handling.
-            [welcomeMarkdown appendFormat:@"- %@\n", title];
+            NSString *filename = fileInfo[@"filename"];
+
+            if (filename) {
+                NSString *linkURLString = [NSString stringWithFormat:@"recent-book://%@", [filename stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLPathAllowedCharacterSet]]];
+                NSURL *linkURL = [NSURL URLWithString:linkURLString];
+                
+                NSMutableAttributedString *listItem = [[NSMutableAttributedString alloc] initWithString:[NSString stringWithFormat:@"- %@", title] attributes:@{NSFontAttributeName: defaultTextViewFont, NSForegroundColorAttributeName: [NSColor linkColor], NSLinkAttributeName: linkURL, NSUnderlineStyleAttributeName: @(NSUnderlineStyleSingle), NSParagraphStyleAttributeName: listParagraphStyle}];
+                [listItem appendAttributedString:[[NSAttributedString alloc] initWithString:@"\n"]]; // Newline after each item
+                [finalWelcomeMessage appendAttributedString:listItem];
+            }
         }
     } else {
-        [welcomeMarkdown appendString:@"\nNo recently opened books.\n"];
+        NSAttributedString *noRecents = [[NSAttributedString alloc] initWithString:@"\nNo recently opened books.\n" attributes:@{NSFontAttributeName: defaultTextViewFont, NSForegroundColorAttributeName: [NSColor textColor]}];
+        [finalWelcomeMessage appendAttributedString:noRecents];
     }
 
-    NSAttributedString *styledWelcome = [MarkdownParser attributedStringFromMarkdownString:welcomeMarkdown defaultFont:defaultTextViewFont];
-    [[bookView textStorage] setAttributedString:styledWelcome];
-    [self.window setTitle:appName]; // Reset title to app name for the welcome screen
+    [[bookView textStorage] setAttributedString:finalWelcomeMessage];
+    [self.window setTitle:appName]; 
+    [bookView setNeedsDisplay:YES]; // Ensure redraw
+}
+
+#pragma mark - NSTextViewDelegate
+
+- (BOOL)textView:(NSTextView *)textView clickedOnLink:(id)link atIndex:(NSUInteger)charIndex {
+    if ([link isKindOfClass:[NSURL class]]) {
+        NSURL *url = (NSURL *)link;
+        if ([url.scheme isEqualToString:@"recent-book"]) {
+            NSString *filename = [url.host stringByRemovingPercentEncoding]; // Or url.path if host is nil
+            if (!filename && url.path.length > 1) { // url.path might be like "/filename.md"
+                filename = [[url.path substringFromIndex:1] stringByRemovingPercentEncoding];
+            }
+            
+            NSLog(@"Clicked on recent book link for filename: %@", filename);
+
+            if (filename) {
+                // Find the full fileInfo to get the original title
+                NSDictionary *foundFileInfo = nil;
+                for (NSDictionary *fileInfo in self.recentlyViewedFiles) {
+                    if ([fileInfo[@"filename"] isEqualToString:filename]) {
+                        foundFileInfo = fileInfo;
+                        break;
+                    }
+                }
+
+                if (foundFileInfo) {
+                    NSString *titleToDisplay = foundFileInfo[@"title"];
+                    NSURL *booksDir = [self applicationBooksDirectory];
+                    if (booksDir) {
+                        NSURL *localFileURL = [booksDir URLByAppendingPathComponent:filename];
+                        if ([[NSFileManager defaultManager] fileExistsAtPath:localFileURL.path]) {
+                            NSLog(@"Opening recent book: %@ from path: %@", titleToDisplay, localFileURL.path);
+                            [self displayBookFromFileURL:localFileURL title:titleToDisplay];
+                            return YES; // Link was handled
+                        } else {
+                            NSLog(@"Error: Recent file not found at path: %@", localFileURL.path);
+                            // Optionally remove from recents or show an error
+                        }
+                    }
+                } else {
+                     NSLog(@"Error: Could not find file info for recent filename: %@", filename);
+                }
+            }
+        }
+    } else if ([link isKindOfClass:[NSString class]]) {
+        // Could handle string-based links if you used those
+        NSLog(@"Clicked on string link: %@", link);
+    }
+    return NO; // Link was not handled by this method, let default behavior proceed (e.g., open in browser for http)
 }
 
 @end
