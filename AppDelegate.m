@@ -207,22 +207,28 @@
          NSLog(@"Cannot open document: BookTextView instance not found.");
          return;
     }
-    NSFont *defaultFont = textViewToUpdate.font ?: [NSFont systemFontOfSize:16.0];
+    
+    // Explicitly use the desired default font for parsing book content.
+    // This should match the font set on BookTextView during init.
+    NSFont *fontForBookParser = [NSFont fontWithName:@"Helvetica" size:16.0];
+    if (!fontForBookParser) { // Fallback if Helvetica is not available (highly unlikely)
+        fontForBookParser = [NSFont systemFontOfSize:16.0];
+    }
 
     if (fileContent) {
-        NSAttributedString *styledContent = [MarkdownParser attributedStringFromMarkdownString:fileContent defaultFont:defaultFont];
+        // Pass the explicitly defined fontForBookParser as the defaultFont for the parser
+        NSAttributedString *styledContent = [MarkdownParser attributedStringFromMarkdownString:fileContent defaultFont:fontForBookParser];
         [self updateBookViewWithContent:styledContent title:bookTitle];
         
-        // Add to recents
         NSDictionary *bookInfo = @{
-            @"title": bookTitle ?: fileURL.lastPathComponent, // Ensure title is not nil
+            @"title": bookTitle ?: fileURL.lastPathComponent,
             @"filename": fileURL.lastPathComponent
         };
         [self addFileToRecents:bookInfo];
 
     } else {
         NSString *errorMessage = [NSString stringWithFormat:@"Error loading file: %@\nPath: %@", error.localizedDescription, fileURL.path];
-        NSAttributedString *styledError = [[NSAttributedString alloc] initWithString:errorMessage attributes:@{NSFontAttributeName: defaultFont, NSForegroundColorAttributeName: [NSColor redColor]}];
+        NSAttributedString *styledError = [[NSAttributedString alloc] initWithString:errorMessage attributes:@{NSFontAttributeName: fontForBookParser, NSForegroundColorAttributeName: [NSColor redColor]}];
         [self updateBookViewWithContent:styledError title:@"Error Loading Book"];
         
         NSAlert *alert = [[NSAlert alloc] init];
@@ -599,31 +605,39 @@
     BookTextView *bookView = [self findBookTextView];
     if (!bookView) return;
 
-    NSFont *defaultTextViewFont = bookView.font ?: [NSFont systemFontOfSize:16.0];
-    NSFont *h2Font = [NSFont boldSystemFontOfSize:defaultTextViewFont.pointSize * 1.5];
+    NSFont *defaultTextViewFont = bookView.font ?: [NSFont systemFontOfSize:16.0]; // This should be Helvetica 16pt
+    NSFont *h1FontForWelcome = [NSFont boldSystemFontOfSize:defaultTextViewFont.pointSize * 2.0];
+    NSFont *h2FontForWelcome = [NSFont boldSystemFontOfSize:defaultTextViewFont.pointSize * 1.5];
     NSString *appName = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleDisplayName"] ?: [[NSProcessInfo processInfo] processName];
     
     NSMutableAttributedString *finalWelcomeMessage = [[NSMutableAttributedString alloc] init];
 
     // Standard Welcome Part
-    NSString *welcomeHeader = [NSString stringWithFormat:@"# Welcome to %@!\n\n", appName];
-    NSString *welcomeInstructions = @"Use File > Open... to select a Markdown file, or File > Browse Online Library... to download books.\n\nUse UP/DOWN or LEFT/RIGHT arrow keys for page turning.\n\n";
-    
-    NSAttributedString *styledWelcomeHeader = [MarkdownParser attributedStringFromMarkdownString:welcomeHeader defaultFont:defaultTextViewFont];
-    NSAttributedString *styledWelcomeInstructions = [MarkdownParser attributedStringFromMarkdownString:welcomeInstructions defaultFont:defaultTextViewFont];
-
+    // For H1, use the parser as it handles paragraph style too.
+    NSAttributedString *styledWelcomeHeader = [MarkdownParser attributedStringFromMarkdownString:[NSString stringWithFormat:@"# Welcome to %@!\n", appName] defaultFont:defaultTextViewFont];
     [finalWelcomeMessage appendAttributedString:styledWelcomeHeader];
+    
+    // For instructional text, apply font directly for clarity on welcome screen
+    NSString *welcomeInstructions = @"Use File > Open... to select a Markdown file, or File > Browse Online Library... to download books.\n\nUse UP/DOWN or LEFT/RIGHT arrow keys for page turning.\n\n";
+    NSAttributedString *styledWelcomeInstructions = [[NSAttributedString alloc] initWithString:welcomeInstructions attributes:@{NSFontAttributeName: defaultTextViewFont, NSForegroundColorAttributeName: [NSColor textColor]}];
     [finalWelcomeMessage appendAttributedString:styledWelcomeInstructions];
 
+
     if (self.recentlyViewedFiles.count > 0) {
-        NSAttributedString *recentHeader = [[NSAttributedString alloc] initWithString:@"Recently Opened:\n" attributes:@{NSFontAttributeName: h2Font, NSForegroundColorAttributeName: [NSColor textColor]}];
+        // Add an extra newline before the "Recently Opened:" header for more spacing
+        [finalWelcomeMessage appendAttributedString:[[NSAttributedString alloc] initWithString:@"\n" attributes:@{NSFontAttributeName: defaultTextViewFont}]];
+
+        NSAttributedString *recentHeader = [[NSAttributedString alloc] initWithString:@"Recently Opened:\n" attributes:@{NSFontAttributeName: h2FontForWelcome, NSForegroundColorAttributeName: [NSColor textColor]}];
         [finalWelcomeMessage appendAttributedString:recentHeader];
         
+        // Add a small space after the "Recently Opened:" header before the list
+        [finalWelcomeMessage appendAttributedString:[[NSAttributedString alloc] initWithString:@"\n" attributes:@{NSFontAttributeName: [NSFont systemFontOfSize:4]}]]; // Small spacer
+
         NSMutableParagraphStyle *listParagraphStyle = [[NSParagraphStyle defaultParagraphStyle] mutableCopy];
-        listParagraphStyle.headIndent = 20.0; // Indent for list items
-        listParagraphStyle.firstLineHeadIndent = 0.0; // For the bullet itself
-        listParagraphStyle.paragraphSpacingBefore = 2.0;
-        listParagraphStyle.paragraphSpacing = 2.0;
+        listParagraphStyle.headIndent = 20.0; 
+        listParagraphStyle.firstLineHeadIndent = 0.0; 
+        listParagraphStyle.paragraphSpacingBefore = 1.0; // Reduced spacing before each list item
+        listParagraphStyle.paragraphSpacing = 1.0;   // Reduced spacing after each list item
 
 
         for (NSDictionary *fileInfo in self.recentlyViewedFiles) {
@@ -634,8 +648,9 @@
                 NSString *linkURLString = [NSString stringWithFormat:@"recent-book://%@", [filename stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLPathAllowedCharacterSet]]];
                 NSURL *linkURL = [NSURL URLWithString:linkURLString];
                 
-                NSMutableAttributedString *listItem = [[NSMutableAttributedString alloc] initWithString:[NSString stringWithFormat:@"- %@", title] attributes:@{NSFontAttributeName: defaultTextViewFont, NSForegroundColorAttributeName: [NSColor linkColor], NSLinkAttributeName: linkURL, NSUnderlineStyleAttributeName: @(NSUnderlineStyleSingle), NSParagraphStyleAttributeName: listParagraphStyle}];
-                [listItem appendAttributedString:[[NSAttributedString alloc] initWithString:@"\n"]]; // Newline after each item
+                NSString *listItemText = [NSString stringWithFormat:@"- %@", title];
+                NSMutableAttributedString *listItem = [[NSMutableAttributedString alloc] initWithString:listItemText attributes:@{NSFontAttributeName: defaultTextViewFont, NSForegroundColorAttributeName: [NSColor linkColor], NSLinkAttributeName: linkURL, NSUnderlineStyleAttributeName: @(NSUnderlineStyleSingle), NSParagraphStyleAttributeName: listParagraphStyle}];
+                [listItem appendAttributedString:[[NSAttributedString alloc] initWithString:@"\n"]]; 
                 [finalWelcomeMessage appendAttributedString:listItem];
             }
         }
@@ -646,7 +661,7 @@
 
     [[bookView textStorage] setAttributedString:finalWelcomeMessage];
     [self.window setTitle:appName]; 
-    [bookView setNeedsDisplay:YES]; // Ensure redraw
+    [bookView setNeedsDisplay:YES];
 }
 
 #pragma mark - NSTextViewDelegate
